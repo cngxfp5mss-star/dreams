@@ -25,8 +25,21 @@ function App() {
         setBalance(balanceResponse.balance);
       } catch (err) {
         console.error("WebLN error:", err);
-        // Show the specific error message
-        setError(`Failed to connect: ${err.message || JSON.stringify(err)}`);
+        // robust error formatting
+        let errorMessage = "Unknown error";
+        if (err instanceof Error) {
+          errorMessage = `${err.message}`;
+          // Optional: stack trace can be added if needed, but message is usually enough for auth errors
+        } else if (typeof err === 'object') {
+          try {
+            errorMessage = JSON.stringify(err, null, 2);
+          } catch (e) {
+            errorMessage = "Error object could not be stringified";
+          }
+        } else {
+          errorMessage = String(err);
+        }
+        setError(errorMessage);
       }
     } else {
       setError("WebLN not detected.");
@@ -47,7 +60,20 @@ function App() {
             <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{balance} sats</p>
           ) : (
             <div>
-              {error && <p style={{ color: 'red', wordBreak: 'break-word' }}>{error}</p>}
+              {error && (
+                <div style={{ backgroundColor: '#fee', padding: '10px', borderRadius: '5px', margin: '10px 0' }}>
+                  <p style={{ color: 'red', fontWeight: 'bold' }}>Error Details:</p>
+                  <pre style={{
+                    color: 'red',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
+                    fontSize: '12px',
+                    userSelect: 'text' // Ensure user can copy it
+                  }}>
+                    {error}
+                  </pre>
+                </div>
+              )}
               <button onClick={connectWallet}>Connect Wallet</button>
             </div>
           )}
