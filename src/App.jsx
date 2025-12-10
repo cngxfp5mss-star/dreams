@@ -21,15 +21,31 @@ function App() {
     if (typeof window.webln !== 'undefined') {
       try {
         await window.webln.enable();
-        const balanceResponse = await window.webln.getBalance();
-        setBalance(balanceResponse.balance);
+
+        // Debugging: Check available methods
+        const weblnKeys = Object.keys(window.webln);
+        console.log("WebLN keys:", weblnKeys);
+
+        // Try getInfo first as it is documented
+        const info = await window.webln.getInfo();
+        console.log("WebLN info:", info);
+
+        // Attempt getBalance only if it exists
+        let balanceVal = "N/A";
+        if (typeof window.webln.getBalance === 'function') {
+          const balanceResponse = await window.webln.getBalance();
+          balanceVal = balanceResponse.balance;
+          setBalance(balanceVal);
+        } else {
+          // Fallback: Display info to see if we can find balance there
+          setError(`getBalance not supported. keys: ${weblnKeys.join(', ')}. Info: ${JSON.stringify(info)}`);
+        }
+
       } catch (err) {
         console.error("WebLN error:", err);
-        // robust error formatting
         let errorMessage = "Unknown error";
         if (err instanceof Error) {
           errorMessage = `${err.message}`;
-          // Optional: stack trace can be added if needed, but message is usually enough for auth errors
         } else if (typeof err === 'object') {
           try {
             errorMessage = JSON.stringify(err, null, 2);
