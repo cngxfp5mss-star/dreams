@@ -26,19 +26,46 @@ function App() {
         const weblnKeys = Object.keys(window.webln);
         console.log("WebLN keys:", weblnKeys);
 
-        // Try getInfo first as it is documented
+        // Try getInfo
         const info = await window.webln.getInfo();
         console.log("WebLN info:", info);
 
+        // Check if window.fedi exists and has balance info
+        let fediInfo = {};
+        if (typeof window.fedi !== 'undefined') {
+          const fediKeys = Object.keys(window.fedi);
+          console.log("Fedi keys:", fediKeys);
+
+          try {
+            // Try to get more info from Fedi API if available
+            if (window.fedi.getAuthenticatedMember) {
+              const member = await window.fedi.getAuthenticatedMember();
+              console.log("Fedi Member:", member);
+              fediInfo.member = member;
+            }
+            if (window.fedi.getActiveFederation) {
+              const federation = await window.fedi.getActiveFederation();
+              console.log("Fedi Federation:", federation);
+              fediInfo.federation = federation;
+            }
+          } catch (fediErr) {
+            console.error("Fedi API error:", fediErr);
+            fediInfo.error = String(fediErr);
+          }
+        }
+
         // Attempt getBalance only if it exists
-        let balanceVal = "N/A";
         if (typeof window.webln.getBalance === 'function') {
           const balanceResponse = await window.webln.getBalance();
-          balanceVal = balanceResponse.balance;
-          setBalance(balanceVal);
+          setBalance(balanceResponse.balance);
         } else {
-          // Fallback: Display info to see if we can find balance there
-          setError(`getBalance not supported. keys: ${weblnKeys.join(', ')}. Info: ${JSON.stringify(info)}`);
+          // Fallback: Display ALL info to see if we can find balance there
+          const debugInfo = {
+            weblnKeys,
+            weblnInfo: info,
+            fediInfo
+          };
+          setError(`getBalance not supported. Debug Info: ${JSON.stringify(debugInfo, null, 2)}`);
         }
 
       } catch (err) {
