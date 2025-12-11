@@ -8,6 +8,7 @@ function App() {
   const [balance, setBalance] = useState(null)
   const [loading, setLoading] = useState(false)
   const [balanceError, setBalanceError] = useState(null)
+  const [weblnInfo, setWeblnInfo] = useState(null)
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -22,18 +23,18 @@ function App() {
         // Try webln.getInfo() which typically returns balance
         if (typeof webln.getInfo === 'function') {
           const info = await webln.getInfo()
-          if (info && typeof info.balance === 'number') {
-            setBalance(info.balance)
-            return
-          }
-        }
+          setWeblnInfo(info)
 
-        // Try fedi.getActiveFederation() which might have balance
-        if (fedi && typeof fedi.getActiveFederation === 'function') {
-          const federation = await fedi.getActiveFederation()
-          if (federation && typeof federation.balance === 'number') {
-            setBalance(federation.balance)
-            return
+          // Check various possible balance properties
+          if (info) {
+            if (typeof info.balance === 'number') {
+              setBalance(info.balance)
+              return
+            }
+            if (info.methods?.includes('balance') && typeof info.balance === 'number') {
+              setBalance(info.balance)
+              return
+            }
           }
         }
 
@@ -126,6 +127,12 @@ function App() {
               }, null, 2)}</pre>
             </div>
           </>
+        )}
+        {weblnInfo && (
+          <div className="debug-section">
+            <strong>WebLN getInfo() result:</strong>
+            <pre>{JSON.stringify(weblnInfo, null, 2)}</pre>
+          </div>
         )}
         <div className="debug-section">
           <strong>Authenticated Member:</strong>
