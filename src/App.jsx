@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useFediInjection } from '@fedibtc/ui'
+import { useFediInjectionContext } from '@fedibtc/ui'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const { status, error, webln, authenticatedMember } = useFediInjection();
+  const { status, error, webln, authenticatedMember } = useFediInjectionContext();
   const [balance, setBalance] = useState(null);
   const [balanceError, setBalanceError] = useState(null);
 
@@ -31,10 +31,10 @@ function App() {
   }
 
   // Loading state handling
-  if (status === 'loading') {
+  if (status === 'loading' || status === 'checking_injections' || status === 'loading_webln' || status === 'loading_nostr' || status === 'loading_fedi_api') {
     return (
       <div className="card">
-        <p>Loading Fedi context...</p>
+        <p>Loading Fedi context... ({status})</p>
       </div>
     );
   }
