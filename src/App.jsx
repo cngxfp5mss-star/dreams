@@ -3,7 +3,8 @@ import { useFediInjectionContext } from '@fedibtc/ui'
 import './App.css'
 
 function App() {
-  const { status, error, webln, authenticatedMember } = useFediInjectionContext()
+  const context = useFediInjectionContext()
+  const { status, error, webln, authenticatedMember } = context
   const [balance, setBalance] = useState(null)
   const [loading, setLoading] = useState(false)
   const [balanceError, setBalanceError] = useState(null)
@@ -79,12 +80,22 @@ function App() {
           <strong>Status:</strong> {status}
         </div>
         <div className="debug-section">
+          <strong>All Context Properties:</strong>
+          <pre>{JSON.stringify(Object.keys(context), null, 2)}</pre>
+        </div>
+        <div className="debug-section">
           <strong>WebLN available:</strong> {webln ? 'Yes' : 'No'}
         </div>
         {webln && (
           <div className="debug-section">
             <strong>WebLN methods:</strong>
             <pre>{JSON.stringify(Object.keys(webln), null, 2)}</pre>
+          </div>
+        )}
+        {context.fediApi && (
+          <div className="debug-section">
+            <strong>Fedi API methods:</strong>
+            <pre>{JSON.stringify(Object.keys(context.fediApi), null, 2)}</pre>
           </div>
         )}
         <div className="debug-section">
