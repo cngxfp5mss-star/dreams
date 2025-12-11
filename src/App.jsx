@@ -4,7 +4,7 @@ import './App.css'
 
 function App() {
   const context = useFediInjectionContext()
-  const { status, error, webln, authenticatedMember } = context
+  const { status, error, webln, authenticatedMember, fedi } = context
   const [balance, setBalance] = useState(null)
   const [loading, setLoading] = useState(false)
   const [balanceError, setBalanceError] = useState(null)
@@ -92,10 +92,13 @@ function App() {
             <pre>{JSON.stringify(Object.keys(webln), null, 2)}</pre>
           </div>
         )}
-        {context.fediApi && (
+        <div className="debug-section">
+          <strong>Fedi available:</strong> {fedi ? 'Yes' : 'No'}
+        </div>
+        {fedi && (
           <div className="debug-section">
-            <strong>Fedi API methods:</strong>
-            <pre>{JSON.stringify(Object.keys(context.fediApi), null, 2)}</pre>
+            <strong>Fedi methods:</strong>
+            <pre>{JSON.stringify(Object.keys(fedi), null, 2)}</pre>
           </div>
         )}
         <div className="debug-section">
