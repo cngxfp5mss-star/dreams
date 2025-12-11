@@ -12,29 +12,33 @@ function App() {
   useEffect(() => {
     const fetchBalance = async () => {
       if (!webln || !authenticatedMember) {
-        console.log('Cannot fetch balance:', { webln: !!webln, authenticatedMember: !!authenticatedMember })
         return
       }
-
-      console.log('WebLN object:', webln)
-      console.log('WebLN methods:', Object.keys(webln))
 
       setLoading(true)
       setBalanceError(null)
 
       try {
-        if (typeof webln.getBalance === 'function') {
-          console.log('Calling webln.getBalance()...')
-          const res = await webln.getBalance()
-          console.log('Balance response:', res)
-          setBalance(res.balance)
-        } else {
-          const errorMsg = 'getBalance is not available on webln'
-          console.error(errorMsg)
-          setBalanceError(errorMsg)
+        // Try webln.getInfo() which typically returns balance
+        if (typeof webln.getInfo === 'function') {
+          const info = await webln.getInfo()
+          if (info && typeof info.balance === 'number') {
+            setBalance(info.balance)
+            return
+          }
         }
+
+        // Try fedi.getActiveFederation() which might have balance
+        if (fedi && typeof fedi.getActiveFederation === 'function') {
+          const federation = await fedi.getActiveFederation()
+          if (federation && typeof federation.balance === 'number') {
+            setBalance(federation.balance)
+            return
+          }
+        }
+
+        setBalanceError('No balance API found')
       } catch (err) {
-        console.error('Failed to fetch balance:', err)
         setBalanceError(err.message || String(err))
       } finally {
         setLoading(false)
@@ -42,7 +46,7 @@ function App() {
     }
 
     fetchBalance()
-  }, [webln, authenticatedMember])
+  }, [webln, authenticatedMember, fedi])
 
   if (status === 'loading' || status === 'checking_injections') {
     return <div className="container">Loading...</div>
@@ -87,19 +91,41 @@ function App() {
           <strong>WebLN available:</strong> {webln ? 'Yes' : 'No'}
         </div>
         {webln && (
-          <div className="debug-section">
-            <strong>WebLN methods:</strong>
-            <pre>{JSON.stringify(Object.keys(webln), null, 2)}</pre>
-          </div>
+          <>
+            <div className="debug-section">
+              <strong>WebLN own keys:</strong>
+              <pre>{JSON.stringify(Object.keys(webln), null, 2)}</pre>
+            </div>
+            <div className="debug-section">
+              <strong>WebLN methods check:</strong>
+              <pre>{JSON.stringify({
+                hasGetInfo: typeof webln.getInfo === 'function',
+                hasGetBalance: typeof webln.getBalance === 'function',
+                hasEnable: typeof webln.enable === 'function',
+                hasSendPayment: typeof webln.sendPayment === 'function'
+              }, null, 2)}</pre>
+            </div>
+          </>
         )}
         <div className="debug-section">
           <strong>Fedi available:</strong> {fedi ? 'Yes' : 'No'}
         </div>
         {fedi && (
-          <div className="debug-section">
-            <strong>Fedi methods:</strong>
-            <pre>{JSON.stringify(Object.keys(fedi), null, 2)}</pre>
-          </div>
+          <>
+            <div className="debug-section">
+              <strong>Fedi own keys:</strong>
+              <pre>{JSON.stringify(Object.keys(fedi), null, 2)}</pre>
+            </div>
+            <div className="debug-section">
+              <strong>Fedi methods check:</strong>
+              <pre>{JSON.stringify({
+                hasGetActiveFederation: typeof fedi.getActiveFederation === 'function',
+                hasGenerateEcash: typeof fedi.generateEcash === 'function',
+                hasReceiveEcash: typeof fedi.receiveEcash === 'function',
+                hasGetAuthenticatedMember: typeof fedi.getAuthenticatedMember === 'function'
+              }, null, 2)}</pre>
+            </div>
+          </>
         )}
         <div className="debug-section">
           <strong>Authenticated Member:</strong>
