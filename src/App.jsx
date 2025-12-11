@@ -9,8 +9,18 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [balanceError, setBalanceError] = useState(null)
   const [weblnInfo, setWeblnInfo] = useState(null)
+  const [windowFediCheck, setWindowFediCheck] = useState(null)
 
   useEffect(() => {
+    // Check window.fedi and window.fediInternal
+    const windowCheck = {
+      hasWindowFedi: typeof window.fedi !== 'undefined',
+      hasWindowFediInternal: typeof window.fediInternal !== 'undefined',
+      windowFediKeys: window.fedi ? Object.keys(window.fedi) : null,
+      windowFediInternalKeys: window.fediInternal ? Object.keys(window.fediInternal) : null
+    }
+    setWindowFediCheck(windowCheck)
+
     const fetchBalance = async () => {
       if (!webln || !authenticatedMember) {
         return
@@ -35,6 +45,15 @@ function App() {
               setBalance(info.balance)
               return
             }
+          }
+        }
+
+        // Try window.fediInternal if it exists
+        if (window.fediInternal && typeof window.fediInternal.getBalance === 'function') {
+          const balanceResult = await window.fediInternal.getBalance()
+          if (typeof balanceResult === 'number') {
+            setBalance(balanceResult)
+            return
           }
         }
 
@@ -132,6 +151,12 @@ function App() {
           <div className="debug-section">
             <strong>WebLN getInfo() result:</strong>
             <pre>{JSON.stringify(weblnInfo, null, 2)}</pre>
+          </div>
+        )}
+        {windowFediCheck && (
+          <div className="debug-section">
+            <strong>Window Fedi check:</strong>
+            <pre>{JSON.stringify(windowFediCheck, null, 2)}</pre>
           </div>
         )}
         <div className="debug-section">
