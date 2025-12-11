@@ -1,93 +1,52 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useFediInjection } from '@fedibtc/ui'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
+  const { status, error, webln, authenticatedMember } = useFediInjection();
   const [balance, setBalance] = useState(null);
-  const [error, setError] = useState(null);
+  const [balanceError, setBalanceError] = useState(null);
 
-  useEffect(() => {
-    // Check if WebLN is injected
-    if (typeof window.webln !== 'undefined') {
-      // Optional: We could try to auto-connect here, but a button is safer/better UX
-    } else {
-      setError("WebLN not detected. Are you in the Fedi app?");
+  const getBalance = async () => {
+    setBalanceError(null);
+    if (!webln) {
+      setBalanceError("WebLN not ready");
+      return;
     }
-  }, []);
 
-  const connectWallet = async () => {
-    setError(null);
-    if (typeof window.webln !== 'undefined') {
-      try {
-        await window.webln.enable();
-
-        // Debugging: Check available methods
-        const weblnKeys = Object.keys(window.webln);
-        console.log("WebLN keys:", weblnKeys);
-
-        // Try getInfo
-        const info = await window.webln.getInfo();
-        console.log("WebLN info:", info);
-
-        // Check if window.fedi exists and has balance info
-        let fediInfo = {};
-        if (typeof window.fedi !== 'undefined') {
-          const fediKeys = Object.keys(window.fedi);
-          console.log("Fedi keys:", fediKeys);
-
-          try {
-            // Try to get more info from Fedi API if available
-            if (window.fedi.getAuthenticatedMember) {
-              const member = await window.fedi.getAuthenticatedMember();
-              console.log("Fedi Member:", member);
-              fediInfo.member = member;
-            }
-            if (window.fedi.getActiveFederation) {
-              const federation = await window.fedi.getActiveFederation();
-              console.log("Fedi Federation:", federation);
-              fediInfo.federation = federation;
-            }
-          } catch (fediErr) {
-            console.error("Fedi API error:", fediErr);
-            fediInfo.error = String(fediErr);
-          }
-        }
-
-        // Attempt getBalance only if it exists
-        if (typeof window.webln.getBalance === 'function') {
-          const balanceResponse = await window.webln.getBalance();
-          setBalance(balanceResponse.balance);
-        } else {
-          // Fallback: Display ALL info to see if we can find balance there
-          const debugInfo = {
-            weblnKeys,
-            weblnInfo: info,
-            fediInfo
-          };
-          setError(`getBalance not supported. Debug Info: ${JSON.stringify(debugInfo, null, 2)}`);
-        }
-
-      } catch (err) {
-        console.error("WebLN error:", err);
-        let errorMessage = "Unknown error";
-        if (err instanceof Error) {
-          errorMessage = `${err.message}`;
-        } else if (typeof err === 'object') {
-          try {
-            errorMessage = JSON.stringify(err, null, 2);
-          } catch (e) {
-            errorMessage = "Error object could not be stringified";
-          }
-        } else {
-          errorMessage = String(err);
-        }
-        setError(errorMessage);
+    try {
+      // Safe check for getBalance
+      if (typeof webln.getBalance === 'function') {
+        const res = await webln.getBalance();
+        setBalance(res.balance);
+      } else {
+        setBalanceError("Balance fetching not supported by this wallet.");
       }
-    } else {
-      setError("WebLN not detected.");
+    } catch (err) {
+      console.error("Balance error", err);
+      setBalanceError(err.message || String(err));
     }
-  };
+  }
+
+  // Loading state handling
+  if (status === 'loading') {
+    return (
+      <div className="card">
+        <p>Loading Fedi context...</p>
+      </div>
+    );
+  }
+
+  // Error state handling from the Provider
+  if (status === 'error') {
+    return (
+      <div className="card">
+        <p style={{ color: 'red' }}>Fedi Injection Error: {error?.message}</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -98,27 +57,25 @@ function App() {
         </p>
 
         <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc', borderRadius: '8px' }}>
-          <h3>Wallet Balance</h3>
-          {balance !== null ? (
-            <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{balance} sats</p>
-          ) : (
+          <h3>Wallet Connection</h3>
+
+          {authenticatedMember ? (
             <div>
-              {error && (
-                <div style={{ backgroundColor: '#fee', padding: '10px', borderRadius: '5px', margin: '10px 0' }}>
-                  <p style={{ color: 'red', fontWeight: 'bold' }}>Error Details:</p>
-                  <pre style={{
-                    color: 'red',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-all',
-                    fontSize: '12px',
-                    userSelect: 'text' // Ensure user can copy it
-                  }}>
-                    {error}
-                  </pre>
+              <p style={{ color: 'green', fontWeight: 'bold' }}>
+                Connected as: {authenticatedMember.name || authenticatedMember.username || "Unknown User"}
+              </p>
+
+              {balance !== null ? (
+                <p style={{ fontSize: '24px', fontWeight: 'bold' }}>{balance} sats</p>
+              ) : (
+                <div>
+                  <p>{balanceError && <span style={{ color: 'red' }}>{balanceError}</span>}</p>
+                  <button onClick={getBalance}>Check Balance</button>
                 </div>
               )}
-              <button onClick={connectWallet}>Connect Wallet</button>
             </div>
+          ) : (
+            <p>Waiting for authentication...</p>
           )}
         </div>
       </div>
